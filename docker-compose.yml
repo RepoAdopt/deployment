@@ -1,87 +1,30 @@
 version: '3.8'
 
-environment:
-  POSTGRES_USERS: username:password | username2:password
-  POSTGRES_DATABASES: dbname:username | dbname2:username2
-
-volumes:
-  persist_volume:
-
-networks:
-  kong-net:
-    external: false
-
 services:
-  db:
-    build:
-      context: postgres
-    environment:
-      POSTGRES_USERS: ${KONG_DB_USERNAME}:${KONG_DB_PASSWORD}|${KONGA_DB_USERNAME}:${KONGA_DB_PASSWORD}
-      POSTGRES_DATABASES: ${KONG_DB_NAME}:${KONG_DB_USERNAME}|${KONGA_DB_NAME}:${KONGA_DB_USERNAME}
+  postgresql:
+    image: docker.io/bitnami/postgresql:11
+    container_name: repoadopt-postgresql
     volumes:
-      - persist_volume:/var/lib/postgresql/data
-    networks:
-      - kong-net
-
-kong-migrations:
-  image: kong:latest
-  entrypoint: sh -c "sleep 10 && kong migrations bootstrap -v"
-  environment:
-    KONG_DATABASE: ${KONG_DATABASE}
-    KONG_PG_HOST: ${KONG_DB_HOST}
-    KONG_PG_DATABASE: ${KONG_DB_NAME}
-    KONG_PG_USER: ${KONG_DB_USERNAME}
-    KONG_PG_PASSWORD: ${KONG_DB_PASSWORD}
-  depends_on:
-    - db
-  networks:
-    - kong-net
-  restart: on-failure
+      - postgresql_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_USERNAME=kong
+      - POSTGRESQL_PASSWORD=bitnami
+      - POSTGRESQL_DATABASE=kong
 
   kong:
-    image: kong:latest
-    environment:
-      KONG_DATABASE: ${KONG_DATABASE}
-      KONG_PG_HOST: ${KONG_DB_HOST}
-      KONG_PG_DATABASE: ${KONG_DB_NAME}
-      KONG_PG_USER: ${KONG_DB_USERNAME}
-      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD}
-      KONG_PROXY_ACCESS_LOG: ${KONG_PROXY_ACCESS_LOG}
-      KONG_ADMIN_ACCESS_LOG: ${KONG_ADMIN_ACCESS_LOG}
-      KONG_PROXY_ERROR_LOG: ${KONG_PROXY_ERROR_LOG}
-      KONG_ADMIN_ERROR_LOG: ${KONG_ADMIN_ERROR_LOG}
-      #KONG_ADMIN_LISTEN: ${KONG_ADMIN_LISTEN}
-    restart: on-failure
+    image: docker.io/bitnami/kong:2
+    container_name: kong
     ports:
-      - $KONG_PROXY_PORT:8000
-    # - $KONG_PROXY_SSL_PORT:8443
-    #- $KONG_PROXY_ADMIN_API_PORT:8001
-    #- $KONG_PROXY_ADMIN_SSL_API_PORT:8444
-    networks:
-      - kong-net
-
-  konga:
-    image: pantsel/konga
+      - 8000:8000
+      - 8443:8443
     environment:
-      TOKEN_SECRET: ${KONGA_TOKEN_SECRET}
-      DB_ADAPTER: ${KONG_DATABASE}
-      DB_HOST: ${KONGA_DB_HOST}
-      DB_PORT: ${KONGA_DB_PORT}
-      DB_DATABASE: ${KONGA_DB_NAME}
-      DB_USER: ${KONGA_DB_USERNAME}
-      DB_PASSWORD: ${KONGA_DB_PASSWORD}
-      NODE_ENV: ${KONGA_ENV}
-      KONGA_HOOK_TIMEOUT: 10000
-    restart: on-failure
-    ports:
-      - $KONGA_PORT:1337
-    depends_on:
-      - db
-    networks:
-      - kong-net
+      - KONG_MIGRATE=yes
+      - KONG_PG_HOST=postgresql
+      - KONG_PG_PASSWORD=bitnami
 
   repoadopt-client:
     image: repoadopt/client:develop
+    container_name: repoadopt-client
     expose:
       - 8080
     ports:
@@ -90,8 +33,9 @@ kong-migrations:
       - repoadopt-graphql
       - repoadopt-authentication
 
-  mongodb:
+  repoadopt-mongodb:
     image: bitnami/mongodb
+    container_name: repoadopt-mongodb
     expose:
       - 27017
     ports:
@@ -99,8 +43,9 @@ kong-migrations:
 
   repoadopt-graphql:
     image: repoadopt/graphql:develop
+    container_name: repoadopt-graphql
     environment:
-      - HOST=mongodb://mongodb/
+      - HOST=mongodb://repoadopt-mongodb/
       - DBHOST=27017
       - PORT=80
       - ENVIRONMENT=deploy
@@ -109,10 +54,11 @@ kong-migrations:
     ports:
       - '5000:80'
     depends_on:
-      - mongodb
+      - repoadopt-mongodb
 
   repoadopt-authentication:
     image: repoadopt/authentication:develop
+    container_name: repoadopt-authentication
     command: bash -c "python ./security/pem_keys.py && python main.py"
     environment:
       - CLIENT_SECRET=3af7485a98304553846c9687d07d011ebc2a413d
@@ -124,3 +70,7 @@ kong-migrations:
       - 5001
     ports:
       - '5001:80'
+
+volumes:
+  postgresql_data:
+    driver: local
