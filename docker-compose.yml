@@ -1,12 +1,91 @@
 version: '3.8'
 
+environment:
+  POSTGRES_USERS: username:password | username2:password
+  POSTGRES_DATABASES: dbname:username | dbname2:username2
+
+volumes:
+  persist_volume:
+
+networks:
+  kong-net:
+    external: false
+
 services:
+  db:
+    build:
+      context: postgres
+    environment:
+      POSTGRES_USERS: ${KONG_DB_USERNAME}:${KONG_DB_PASSWORD}|${KONGA_DB_USERNAME}:${KONGA_DB_PASSWORD}
+      POSTGRES_DATABASES: ${KONG_DB_NAME}:${KONG_DB_USERNAME}|${KONGA_DB_NAME}:${KONGA_DB_USERNAME}
+    volumes:
+      - persist_volume:/var/lib/postgresql/data
+    networks:
+      - kong-net
+
+kong-migrations:
+  image: kong:latest
+  entrypoint: sh -c "sleep 10 && kong migrations bootstrap -v"
+  environment:
+    KONG_DATABASE: ${KONG_DATABASE}
+    KONG_PG_HOST: ${KONG_DB_HOST}
+    KONG_PG_DATABASE: ${KONG_DB_NAME}
+    KONG_PG_USER: ${KONG_DB_USERNAME}
+    KONG_PG_PASSWORD: ${KONG_DB_PASSWORD}
+  depends_on:
+    - db
+  networks:
+    - kong-net
+  restart: on-failure
+
+  kong:
+    image: kong:latest
+    environment:
+      KONG_DATABASE: ${KONG_DATABASE}
+      KONG_PG_HOST: ${KONG_DB_HOST}
+      KONG_PG_DATABASE: ${KONG_DB_NAME}
+      KONG_PG_USER: ${KONG_DB_USERNAME}
+      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD}
+      KONG_PROXY_ACCESS_LOG: ${KONG_PROXY_ACCESS_LOG}
+      KONG_ADMIN_ACCESS_LOG: ${KONG_ADMIN_ACCESS_LOG}
+      KONG_PROXY_ERROR_LOG: ${KONG_PROXY_ERROR_LOG}
+      KONG_ADMIN_ERROR_LOG: ${KONG_ADMIN_ERROR_LOG}
+      #KONG_ADMIN_LISTEN: ${KONG_ADMIN_LISTEN}
+    restart: on-failure
+    ports:
+      - $KONG_PROXY_PORT:8000
+    # - $KONG_PROXY_SSL_PORT:8443
+    #- $KONG_PROXY_ADMIN_API_PORT:8001
+    #- $KONG_PROXY_ADMIN_SSL_API_PORT:8444
+    networks:
+      - kong-net
+
+  konga:
+    image: pantsel/konga
+    environment:
+      TOKEN_SECRET: ${KONGA_TOKEN_SECRET}
+      DB_ADAPTER: ${KONG_DATABASE}
+      DB_HOST: ${KONGA_DB_HOST}
+      DB_PORT: ${KONGA_DB_PORT}
+      DB_DATABASE: ${KONGA_DB_NAME}
+      DB_USER: ${KONGA_DB_USERNAME}
+      DB_PASSWORD: ${KONGA_DB_PASSWORD}
+      NODE_ENV: ${KONGA_ENV}
+      KONGA_HOOK_TIMEOUT: 10000
+    restart: on-failure
+    ports:
+      - $KONGA_PORT:1337
+    depends_on:
+      - db
+    networks:
+      - kong-net
+
   repoadopt-client:
     image: repoadopt/client:develop
     expose:
       - 8080
     ports:
-      - "8080:80"
+      - '8080:80'
     depends_on:
       - repoadopt-graphql
       - repoadopt-authentication
@@ -16,7 +95,7 @@ services:
     expose:
       - 27017
     ports:
-      - "27017:27017"
+      - '27017:27017'
 
   repoadopt-graphql:
     image: repoadopt/graphql:develop
@@ -28,7 +107,7 @@ services:
     expose:
       - 5000
     ports:
-      - "5000:80"
+      - '5000:80'
     depends_on:
       - mongodb
 
@@ -44,4 +123,4 @@ services:
     expose:
       - 5001
     ports:
-      - "5001:80"
+      - '5001:80'
