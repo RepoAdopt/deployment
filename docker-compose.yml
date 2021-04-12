@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  repoadopt-client:
+    image: repoadopt/client:develop
+    expose:
+      - 8080
+    ports:
+      - "8080:80"
+    depends_on:
+      - repoadopt-graphql
+      - repoadopt-authentication
+
+  mongodb:
+    image: bitnami/mongodb
+    expose:
+      - 27017
+    ports:
+      - "27017:27017"
+
+  repoadopt-graphql:
+    image: repoadopt/graphql:develop
+    environment:
+      - HOST=mongodb://mongodb/
+      - DBHOST=27017
+      - PORT=80
+      - ENVIRONMENT=deploy
+    expose:
+      - 5000
+    ports:
+      - "5000:80"
+    depends_on:
+      - mongodb
+
+  repoadopt-authentication:
+    image: repoadopt/authentication:develop
+    command: bash -c "python ./security/pem_keys.py && python main.py"
+    environment:
+      - CLIENT_SECRET=3af7485a98304553846c9687d07d011ebc2a413d
+      - PORT=80
+      - DEVELOPMENT=True
+      - ISSUER=RepoAdopt
+      - TOKEN_EXPIRATION_TIME=604800
+    expose:
+      - 5001
+    ports:
+      - "5001:80"
