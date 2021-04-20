@@ -33,7 +33,7 @@ services:
       - repoadopt
 
   repoadopt-client:
-    image: repoadopt/client:develop
+    image: repoadopt/client:dynamic_routes
     container_name: repoadopt-client
     expose:
       - 8080
@@ -87,10 +87,6 @@ services:
       - repoadopt
     depends_on: 
       - kong
-    expose:
-      - 5001
-    ports:
-      - '5001:82'
 
 volumes:
   postgresql_data:
