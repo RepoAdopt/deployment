@@ -85,6 +85,8 @@ services:
       - GRAPHQL_URL=http://repoadopt-authenticationl:82/signin
     networks: 
       - repoadopt
+    depends_on: 
+      - kong
     expose:
       - 5001
     ports:
