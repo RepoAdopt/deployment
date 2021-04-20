@@ -72,21 +72,23 @@ services:
       - kong
 
   repoadopt-authentication:
-    image: repoadopt/authentication:develop
+    image: repoadopt/authentication:dynamic_routes
     container_name: repoadopt-authentication
     command: bash -c "python ./security/pem_keys.py && python main.py"
     environment:
       - CLIENT_SECRET=3af7485a98304553846c9687d07d011ebc2a413d
-      - PORT=80
+      - PORT=82
       - DEVELOPMENT=True
       - ISSUER=RepoAdopt
       - TOKEN_EXPIRATION_TIME=604800
+      - GATEWAY=kong.repoadopt:8001
+      - GRAPHQL_URL=http://repoadopt-authenticationl:82/signin
     networks: 
       - repoadopt
     expose:
       - 5001
     ports:
-      - '5001:80'
+      - '5001:82'
 
 volumes:
   postgresql_data:
