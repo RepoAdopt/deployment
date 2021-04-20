@@ -82,7 +82,7 @@ services:
       - ISSUER=RepoAdopt
       - TOKEN_EXPIRATION_TIME=604800
       - GATEWAY=kong.repoadopt:8001
-      - GRAPHQL_URL=http://repoadopt-authenticationl:82/signin
+      - AUTHENTICATION_URL=http://repoadopt-authentication:82/signin
     networks: 
       - repoadopt
     depends_on: 
