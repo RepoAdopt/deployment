@@ -53,9 +53,8 @@ services:
               VUE_APP_CLIENT_ID: "df86e3f7b0d46d5776a6",
             };
           })();
-    command:
-      /bin/sh "touch /repoadopt/app/config.js"
-#      /bin/sh "echo \"$$CONFIGJS\" > /repoadopt/app/config.js; nginx -g \"daemon off;\""
+    entrypoint: /bin/sh
+    command: -c "echo \"$$CONFIGJS\" > /repoadopt/app/config.js; nginx -g \"daemon off;\""
     depends_on:
       - repoadopt-graphql
       - repoadopt-authentication
