@@ -33,7 +33,7 @@ services:
       - repoadopt
 
   repoadopt-client:
-    image: repoadopt/client:dynamic_routes
+    image: repoadopt/client:frontend_environment_variables
     container_name: repoadopt-client
     expose:
       - 8080
@@ -41,6 +41,21 @@ services:
       - '8080:80'
     networks: 
       - repoadopt
+    volumes:
+      - .:/public
+    environment:
+      CONFIGJS: |
+          window.config = (() => {
+            return {
+              VUE_APP_GRAPHQL: "http://repoadopt.graphql:5000",
+              VUE_APP_AXIOS: "http://repoadopt.authentication:5001",
+              VUE_APP_PAGINATION_LIMIT: 10,
+              VUE_APP_CLIENT_ID: "df86e3f7b0d46d5776a6",
+            };
+          })();
+    command:
+      /bin/sh "touch /repoadopt/app/config.js"
+#      /bin/sh "echo \"$$CONFIGJS\" > /repoadopt/app/config.js; nginx -g \"daemon off;\""
     depends_on:
       - repoadopt-graphql
       - repoadopt-authentication
@@ -56,7 +71,7 @@ services:
       - repoadopt
 
   repoadopt-graphql:
-    image: repoadopt/graphql:dynamic_routes
+    image: repoadopt/graphql:develop
     container_name: repoadopt-graphql
     environment:
       - HOST=mongodb://repoadopt-mongodb.repoadopt/
@@ -72,7 +87,7 @@ services:
       - kong
 
   repoadopt-authentication:
-    image: repoadopt/authentication:dynamic_routes
+    image: repoadopt/authentication:develop
     container_name: repoadopt-authentication
     command: bash -c "python ./security/pem_keys.py && python main.py"
     environment:
