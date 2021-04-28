@@ -33,7 +33,7 @@ services:
       - repoadopt
 
   repoadopt-client:
-    image: repoadopt/client:frontend_environment_variables
+    image: repoadopt/client:develop
     container_name: repoadopt-client
     expose:
       - 8080
