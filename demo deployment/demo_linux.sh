@@ -1,4 +1,3 @@
-git init
 git clone https://github.com/RepoAdopt/deployment
 
 echo Pulled repoadopt deployment
