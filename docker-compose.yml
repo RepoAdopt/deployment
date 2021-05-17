@@ -23,6 +23,7 @@ services:
     container_name: kong
     ports:
       - 8100:8000
+      - 8101:8001
       - 8443:8443
     environment:
       - KONG_MIGRATE=yes
@@ -35,10 +36,6 @@ services:
   repoadopt-client:
     image: repoadopt/client:develop
     container_name: repoadopt-client
-    expose:
-      - 8080
-    ports:
-      - '8080:80'
     networks: 
       - repoadopt
     volumes:
@@ -47,15 +44,20 @@ services:
       CONFIGJS: |
           window.config = (() => {
             return {
-              VUE_APP_GRAPHQL: "http://repoadopt.graphql:5000",
-              VUE_APP_AXIOS: "http://repoadopt.authentication:5001",
+              VUE_APP_GRAPHQL: "http://$MACHINE_URL:8100",
+              VUE_APP_AXIOS: "http://$MACHINE_URL:8100",
               VUE_APP_PAGINATION_LIMIT: 10,
-              VUE_APP_CLIENT_ID: "df86e3f7b0d46d5776a6",
+              VUE_APP_CLIENT_ID: "$CLIENT_ID",
             };
           })();
+      CONTAINER_URL: repoadopt-client.repoadopt:80
+      MACHINE_URL: $MACHINE_URL
     entrypoint: /bin/sh
-    command: -c "echo \"$$CONFIGJS\" > /repoadopt/app/config.js; nginx -g \"daemon off;\""
+    volumes: 
+      - ./register_nginx.sh:/register_nginx.sh
+    command: -c "echo \"$$CONFIGJS\" > /repoadopt/app/config.js; chmod +x ./register_nginx.sh; ./register_nginx.sh; nginx -g \"daemon off;\""
     depends_on:
+      - kong
       - repoadopt-graphql
       - repoadopt-authentication
 
@@ -78,7 +80,8 @@ services:
       - PORT=81
       - ENVIRONMENT=deploy
       - GATEWAY=kong.repoadopt:8001
-      - GRAPHQL_URL=http://repoadopt-graphql:81/graphql
+      - GRAPHQL_URL=repoadopt-graphql.repoadopt:81
+      - GATEWAY_RETRIES=20
     networks: 
       - repoadopt
     depends_on:
@@ -90,13 +93,14 @@ services:
     container_name: repoadopt-authentication
     command: bash -c "python ./security/pem_keys.py && python main.py"
     environment:
-      - CLIENT_SECRET=3af7485a98304553846c9687d07d011ebc2a413d
+      - CLIENT_SECRET=$CLIENT_SECRET
       - PORT=82
       - DEVELOPMENT=True
       - ISSUER=RepoAdopt
       - TOKEN_EXPIRATION_TIME=604800
       - GATEWAY=kong.repoadopt:8001
-      - AUTHENTICATION_URL=http://repoadopt-authentication:82/signin
+      - AUTHENTICATION_URL=repoadopt-authentication.repoadopt:82
+      - GATEWAY_RETRIES=20
     networks: 
       - repoadopt
     depends_on: 
