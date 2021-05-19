@@ -51,10 +51,10 @@ services:
             };
           })();
       CONTAINER_URL: repoadopt-client.repoadopt:80
-      MACHINE_URL: $MACHINE_URL
     entrypoint: /bin/sh
     volumes: 
       - ./register_nginx.sh:/register_nginx.sh
+      - .:/public
     command: -c "echo \"$$CONFIGJS\" > /repoadopt/app/config.js; chmod +x ./register_nginx.sh; ./register_nginx.sh; nginx -g \"daemon off;\""
     depends_on:
       - kong
