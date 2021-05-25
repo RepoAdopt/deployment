@@ -32,7 +32,12 @@ services:
       - KONG_PG_PASSWORD=bitnami
     networks: 
       - repoadopt
-
+  openwhisk:
+    image: openwhisk/python3action
+    container_name: openwhisk
+    ports:
+      - "8200:8200"
+      
   repoadopt-client:
     image: repoadopt/client:develop
     container_name: repoadopt-client
