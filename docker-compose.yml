@@ -32,11 +32,24 @@ services:
       - KONG_PG_PASSWORD=bitnami
     networks: 
       - repoadopt
+
   openwhisk:
-    image: openwhisk/python3action
+    image: openwhisk/actionloop-python-v3.7
     container_name: openwhisk
+    networks:
+      - repoadopt
+    volumes:
+      - ./register_nginx.sh:/register_nginx.sh
+    environment:
+      MACHINE_URL: $MACHINE_URL
+      SERVICE_NAME: openwhisk
+      CONTAINER_URL: openwhisk.repoadopt:8200
+    entrypoint: /bin/sh
+    command: -c "chmod +x ./register_nginx.sh; ./register_nginx.sh;"
     ports:
-      - "8200:8200"
+      - 8200:8080
+    depends_on:
+      - kong
       
   repoadopt-client:
     image: repoadopt/client:develop
@@ -54,6 +67,7 @@ services:
             };
           })();
       MACHINE_URL: $MACHINE_URL
+      SERVICE_NAME: nginx
       CONTAINER_URL: repoadopt-client.repoadopt:80
     entrypoint: /bin/sh
     volumes: 

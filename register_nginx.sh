@@ -1,5 +1,4 @@
 BASE_URL=http://$MACHINE_URL:8101
-SERVICE_NAME=nginx
 UPSTREAM_NAME=$SERVICE_NAME\_upstream
 
 sleep 10
