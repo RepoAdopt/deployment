@@ -32,18 +32,9 @@ services:
       - KONG_PG_PASSWORD=bitnami
     networks: 
       - repoadopt
-
-  nuclio:
-    image: nuclio/dashboard:stable-amd64
-    container_name: nuclio
-    ports:
-      - "8070:8070"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp:/tmp
       
   repoadopt-client:
-    image: repoadopt/client:develop
+    image: repoadopt/client:transfer_ownership_of_an_adoptable
     container_name: repoadopt-client
     networks: 
       - repoadopt
@@ -55,6 +46,8 @@ services:
               VUE_APP_AXIOS: "http://$MACHINE_URL:8100",
               VUE_APP_PAGINATION_LIMIT: 10,
               VUE_APP_CLIENT_ID: "$CLIENT_ID",
+              VUE_APP_NUCLIO_HOST: "localhost",
+              VUE_APP_NUCLIO_PORT: 8070
             };
           })();
       MACHINE_URL: $MACHINE_URL
@@ -83,7 +76,7 @@ services:
       - repoadopt
 
   repoadopt-graphql:
-    image: repoadopt/graphql:develop
+    image: repoadopt/graphql:chat_with_adoptable
     container_name: repoadopt-graphql
     environment:
       - HOST=mongodb://repoadopt-mongodb.repoadopt/
